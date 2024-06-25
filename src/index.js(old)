@@ -1,0 +1,56 @@
+console.log('Index.js is loaded');
+
+import { BarretenbergBackend } from '@noir-lang/backend_barretenberg';
+import { Noir } from '@noir-lang/noir_js';
+import circuit from '../target/age_verification.json';
+
+const MIN_AGE = 18;
+
+async function main() {
+    console.log('Starting main function');
+    const backend = new BarretenbergBackend(circuit);
+    console.log('Backend created');
+    console.log('Backend type:', typeof backend);
+    console.log('Backend structure:', JSON.stringify(backend, null, 2));
+    
+    const noir = new Noir(circuit, backend);
+    console.log('Noir instance created');
+    console.log('Noir type:', typeof noir);
+    console.log('Noir structure:', JSON.stringify(noir, null, 2));
+
+    console.log('Backend methods:', Object.keys(backend));
+    
+    for (let key in backend) {
+        console.log(`Backend ${key} type:`, typeof backend[key]);
+    }
+
+    const verifyButton = document.getElementById('verifyButton');
+    const ageInput = document.getElementById('ageInput');
+    const result = document.getElementById('result');
+
+    verifyButton.addEventListener('click', async () => {
+        const age = parseInt(ageInput.value, 10);
+        console.log('Verifying age:', age);
+        try {
+            console.log('Executing noir...');
+            const { witness } = await noir.execute({ age: age, min_age: MIN_AGE });
+            console.log('Witness generated:', witness);
+
+            // For now, we'll just log the success without proof generation
+            result.textContent = `Age verification successful. You are ${age} years old and meet the minimum age requirement.`;
+        } catch (error) {
+            console.error('Error during verification:', error);
+            console.error('Error stack:', error.stack);
+            if (error.message.includes("Cannot satisfy constraint")) {
+                result.textContent = `Age verification failed. You must be at least ${MIN_AGE} years old.`;
+            } else {
+                result.textContent = `Age verification failed. Error: ${error.message}`;
+            }
+        }
+    });
+}
+
+console.log('Before main');
+main().catch(console.error);
+console.log('After main');
+
